@@ -2,6 +2,11 @@
 
 This repo contains scripts for investigating graffitist's quantisation method.
 
+To run, please use the graffitist conda environment.
+```
+conda activate graffitist
+```
+
 ## Static Quantisation
 
 The static quantisation method requires the following information.
