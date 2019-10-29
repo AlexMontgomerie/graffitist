@@ -44,7 +44,7 @@ parser.add_argument('--deterministic', dest='deterministic', action='store_true'
 
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"]="2" # This is to filter out TensorFlow INFO and WARNING logs
-#os.environ["CUDA_VISIBLE_DEVICES"]="0" # GPU visible for validation
+os.environ["CUDA_VISIBLE_DEVICES"]="1" # GPU visible for validation
 
 # Load python libraries for custom C++/CUDA quantize kernels.
 kernel_root = os.path.join(os.path.dirname(graffitist.__file__), 'kernels')
