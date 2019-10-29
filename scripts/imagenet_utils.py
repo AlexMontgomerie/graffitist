@@ -669,7 +669,7 @@ def dataset_input_image_fn(dataset_path, model_dir, image_size, batch_size, num_
     #     https://github.com/tensorflow/tensorflow/issues/25700
     #     https://github.com/tensorflow/tensorflow/pull/25705
     #dataset = dataset.apply(tf.data.experimental.ignore_errors())
-    dataset = tf.data.Dataset.list_files(dataset_path + '/*/*')
+    dataset = tf.data.Dataset.list_files(os.path.join(dataset_path,'*/*'))
     dataset = dataset.map(_parse_function, num_parallel_calls=num_threads)
     if shuffle:
       dataset = dataset.shuffle(buffer_size=10000)

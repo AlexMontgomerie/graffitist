@@ -1,8 +1,8 @@
-import os,csv
+import os,csv,sys
 import numpy as np
  
 # output path
-output_path="outputs/vgg16_slim_pretrained"
+output_path=sys.argv[1]
 
 # read lines and accumulate
 top1 = 0.0
@@ -16,7 +16,7 @@ def get_top5(arr):
 
 # iterate over files
 for filename in os.listdir(output_path):
-    with open(output_path+'/'+filename,'r') as f:
+    with open(os.path.join(output_path,filename),'r') as f:
         reader = csv.reader(f,delimiter=",")
         for row in reader:
             # get class

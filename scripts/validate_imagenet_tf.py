@@ -67,7 +67,7 @@ def validate(val_filenames):
   if args.gen_calib_set:
     # No need to load the model to generate calibration dataset
     with tf.compat.v1.Session(graph=tf.Graph()) as sess:
-      features, _, _ = im_utils.dataset_input_fn(val_filenames, args.model_dir, args.image_size, args.calib_set_size, num_threads, shuffle=True, is_training=False)
+      features, _, _ = im_utils.dataset_input_image_fn(val_filenames, args.model_dir, args.image_size, args.calib_set_size, num_threads, shuffle=True, is_training=False)
       input_features = sess.run(features)
       np.save(args.model_dir+'calibration_set', input_features)
       print("Saved calibration dataset to {}calibration_set.npy".format(args.model_dir))
