@@ -1,10 +1,17 @@
 #!/bin/sh
 
 #VARIABLE DEFINITIONS
-model_name=vgg
+#model_name=vgg
+#data_dir=/data/imagenet/validation
+#graph=models/vgg16_slim_pretrained/vgg16_slim_pretrained.pb
+#ckpt=models/vgg16_slim_pretrained/vgg16_slim_pretrained.ckpt
+
+model_name=mobilenet_v1_static_4_4
 data_dir=/data/imagenet/validation
-graph=models/vgg16_slim_pretrained/vgg16_slim_pretrained.pb
-ckpt=models/vgg16_slim_pretrained/vgg16_slim_pretrained.ckpt
+graph=models/mobilenet_v1_static_4_4/mobilenet_v1_slim_pretrained_quant.pb
+ckpt=models/mobilenet_v1_static_4_4/mobilenet_v1_slim_pretrained_graffitist.ckpt
+
+
 
 # RUN VALIDATION SCRIPT
 python run_inference_dataset.py \

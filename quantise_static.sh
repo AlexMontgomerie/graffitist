@@ -1,14 +1,25 @@
 #!/bin/sh
 
 #VARIABLE DEFINITIONS
-mdir=models/vgg16_slim_pretrained
-in_graph=$mdir/vgg16_slim_pretrained.pb
-opt_graph=$mdir/vgg16_slim_pretrained_opt.pb
-quant_graph=$mdir/vgg16_slim_pretrained_quant.pb
+#mdir=models/vgg16_slim_pretrained
+#in_graph=$mdir/vgg16_slim_pretrained.pb
+#opt_graph=$mdir/vgg16_slim_pretrained_opt.pb
+#quant_graph=$mdir/vgg16_slim_pretrained_quant.pb
+#input_node=input
+#output_node=vgg_16/fc8/squeezed
+#input_shape=224,224,3
+#wb=-8; ab=-8; lb=-16; rb=8; pb=8; prb=8;
+
+#VARIABLE DEFINITIONS
+mdir=models/mobilenet_v1_static_4_4
+in_graph=$mdir/mobilenet_v1_slim_pretrained.pb
+opt_graph=$mdir/mobilenet_v1_slim_pretrained_opt.pb
+quant_graph=$mdir/mobilenet_v1_slim_pretrained_quant.pb
 input_node=input
-output_node=vgg_16/fc8/squeezed
+output_node=MobilenetV1/Predictions/Softmax
 input_shape=224,224,3
-wb=-8; ab=-8; lb=-16; rb=8; pb=8; prb=8;
+wb=-4; ab=-8; lb=-8; rb=8; pb=8; prb=8;
+
 
 # Limit GPUs Used
 export CUDA_VISIBLE_DEVICES="0,1"

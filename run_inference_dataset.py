@@ -53,9 +53,13 @@ BATCH_SIZE   = args.batch_size
 with open('synset_idx.json','r') as f:
   synset_idx = json.load(f)
 
+
 # START TENSORFLOW SESSION 
 with tf.compat.v1.Session() as sess:
-  
+
+  # INIT TF VARIABLES 
+  sess.run(tf.global_variables_initializer())
+ 
   # LOAD GRAPH
   with tf.gfile.GFile(GRAPH_PB_PATH,'rb') as f:
     graph_def = tf.compat.v1.GraphDef()
@@ -83,7 +87,7 @@ with tf.compat.v1.Session() as sess:
 
   # define input and output nodes
   l_input  = tf.get_default_graph().get_tensor_by_name("input:0")
-  l_output = tf.get_default_graph().get_tensor_by_name("vgg_16/fc8/squeezed:0")
+  l_output = tf.get_default_graph().get_tensor_by_name("MobilenetV1/Predictions/Softmax:0")
 
   # Reset output directory
   if os.path.isdir('outputs/'+MODEL_NAME):

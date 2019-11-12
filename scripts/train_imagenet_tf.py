@@ -24,6 +24,7 @@ import os
 import re
 import time
 import numpy as np
+import json
 
 import tensorflow as tf
 
@@ -32,8 +33,10 @@ import graffitist
 import imagenet_utils as im_utils
 
 parser = argparse.ArgumentParser(description='TensorFlow ImageNet Training Script')
-parser.add_argument('--data_dir', metavar='PATH', required=True,
-          help='path to dataset dir (tfrecords)')
+parser.add_argument('--train_dir', metavar='PATH', required=True,
+          help='path to training dataset dir')
+parser.add_argument('--val_dir', metavar='PATH', required=True,
+          help='path to validation dataset dir')
 parser.add_argument('--ckpt_dir', metavar='PATH', required=True,
           help='path to the dir containing .ckpt/.meta')
 parser.add_argument('--meta_path', metavar='PATH', required=False,
@@ -45,6 +48,9 @@ parser.add_argument('-b_t', '--batch_size_t', type=int, default=24, metavar='N',
 parser.add_argument('-b_v', '--batch_size_v', type=int, default=64, metavar='N',
           help='validation mini-batch size (default: 64)')
 
+# open synset-class look up table
+with open('synset_idx.json','r') as f:
+  synset_idx = json.load(f)
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"]="2" # This is to filter out TensorFlow INFO and WARNING logs
 #os.environ["CUDA_VISIBLE_DEVICES"]="0" # GPU visible for training
@@ -80,7 +86,7 @@ def _FoldFusedBatchNormGrad(op, unused_grad_y, grad_mean, grad_var, unused_1, un
   return (dmean_dx + dvar_dx), None, None, None, None
 
 
-def train(train_filenames, val_filenames):
+def train(train_dir, val_dir):
   # Experiment #
   exp_id = 99
 
@@ -316,10 +322,13 @@ def train(train_filenames, val_filenames):
     # Train accuracy
     _, preds_top_5 = tf.nn.top_k(output, k=5, sorted=True)
 
-  with tf.name_scope('data_pipeline'):
+  with tf.name_scope('data_pipeline'): #TODO: change to new method
     # Build tf.data pipeline - Training & Validation
-    train_features_tensor, train_labels_tensor, _ = im_utils.dataset_input_fn(train_filenames, args.ckpt_dir, args.image_size, args.batch_size_t, num_threads, shuffle=True, num_epochs=None, initializable=False, is_training=DATA_AUG)
-    val_features_tensor, val_labels_tensor, val_iterator = im_utils.dataset_input_fn(val_filenames, args.ckpt_dir, args.image_size, args.batch_size_v, num_threads, shuffle=False, num_epochs=1, initializable=True, is_training=False)
+    train_features_tensor, train_labels_tensor, _ = im_utils.dataset_input_image_fn(args.train_dir, args.ckpt_dir, args.image_size, args.batch_size_t, num_threads, shuffle=True, num_epochs=None, initializable=False, is_training=DATA_AUG)
+    #train_features_tensor, train_labels_tensor, _ = im_utils.dataset_input_fn(args.train_dir, args.ckpt_dir, args.image_size, args.batch_size_t, num_threads)
+    #val_features_tensor, val_labels_tensor, val_iterator = im_utils.dataset_input_fn(args.val_dir, args.ckpt_dir, args.image_size, args.batch_size_v, num_threads)
+    val_features_tensor, val_labels_tensor, val_iterator = im_utils.dataset_input_image_fn(args.val_dir, args.ckpt_dir, args.image_size, args.batch_size_v, num_threads, shuffle=False, num_epochs=1, initializable=True, is_training=False)
+ 
     # Indices for the 1000 classes run from 0 - 999, thus
     # we subtract 1 from the labels (which run from 1 - 1000)
     # to match with the predictions. This is not needed with
@@ -400,6 +409,7 @@ def train(train_filenames, val_filenames):
         start_time = time.time()
         try:
           input_features, input_labels = sess.run([val_features_tensor, val_labels_tensor])
+          input_labels = np.array([ synset_idx[input_labels[i].decode("utf-8")] for i in range(input_labels.shape[0]) ])
         except tf.errors.OutOfRangeError:
           break
 
@@ -442,6 +452,7 @@ def train(train_filenames, val_filenames):
       # TRAIN every step
       start_time = time.time()
       input_features, input_labels = sess.run([train_features_tensor, train_labels_tensor])
+      input_labels = np.array([ synset_idx[input_labels[i].decode("utf-8")] for i in range(input_labels.shape[0]) ])
 
       # Map predicted labels synset ordering between ILSVRC and darknet
       if re.match('.*darknet19.*', args.ckpt_dir):
@@ -516,7 +527,8 @@ def train(train_filenames, val_filenames):
           start_time = time.time()
           try:
             input_features, input_labels = sess.run([val_features_tensor, val_labels_tensor])
-          except tf.errors.OutOfRangeError:
+          #except tf.errors.OutOfRangeError:
+          except tf.compat.v1.errors.OutOfRangeError:
             break
 
           # Map predicted labels synset ordering between ILSVRC and darknet
@@ -554,23 +566,8 @@ def main():
   global args
   args = parser.parse_args()
 
-  # ImageNet Training Dataset (TFRecords)
-  num_shards = 1024
-  train_filenames = []
-  for shard in range(num_shards):
-    file_name = 'train-%.5d-of-%.5d.tfrecord' % (shard, num_shards)
-    train_filenames.append(os.path.join(args.data_dir, file_name))
-
-  # ImageNet Validation Dataset (TFRecords)
-  num_shards = 128
-  val_filenames = []
-  for shard in range(num_shards):
-    file_name = 'validation-%.5d-of-%.5d.tfrecord' % (shard, num_shards)
-    val_filenames.append(os.path.join(args.data_dir, file_name))
-
   # Build complete training graph (loss, optimizer, initializer, summaries etc) and train.
-  train(train_filenames, val_filenames)
-
+  train(args.train_dir, args.val_dir)
 
 if __name__ == '__main__':
   main()
