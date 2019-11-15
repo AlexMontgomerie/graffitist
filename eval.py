@@ -20,8 +20,8 @@ for filename in os.listdir(output_path):
         reader = csv.reader(f,delimiter=",")
         for row in reader:
             # get class
-            class_true  = int(row[0])
-            pred = get_top5(row[1:])
+            class_true  = int(row[1])
+            pred = get_top5(row[2:])
             if pred[0] == class_true:
                 top1 += 1
             if class_true in pred:

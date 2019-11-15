@@ -527,6 +527,7 @@ def train(train_dir, val_dir):
           start_time = time.time()
           try:
             input_features, input_labels = sess.run([val_features_tensor, val_labels_tensor])
+            input_labels = np.array([ synset_idx[input_labels[i].decode("utf-8")] for i in range(input_labels.shape[0]) ])
           #except tf.errors.OutOfRangeError:
           except tf.compat.v1.errors.OutOfRangeError:
             break
@@ -534,7 +535,7 @@ def train(train_dir, val_dir):
           # Map predicted labels synset ordering between ILSVRC and darknet
           if re.match('.*darknet19.*', args.ckpt_dir):
             input_labels = im_utils.map_darknet_labels(input_labels, 'ilsvrc2darknet')
-
+          
           preds_5 = sess.run(preds_top_5, feed_dict={input: input_features, labels: input_labels, freeze_bn: True})
           end_time = time.time()
           acc1, acc5 = im_utils.accuracy(preds_5, input_labels, topk=(1, 5))

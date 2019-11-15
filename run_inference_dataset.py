@@ -83,7 +83,7 @@ with tf.compat.v1.Session() as sess:
   saver.restore(sess, CKPT_PATH)
 
   # Get the dataset
-  features, labels, _ = imagenet_utils.dataset_input_image_fn(DATASET_PATH, GRAPH_PB_PATH, 224, BATCH_SIZE, 8)
+  features, labels, filenames, _ = imagenet_utils.dataset_input_image_fn(DATASET_PATH, GRAPH_PB_PATH, 224, BATCH_SIZE, 8,filenames=True)
 
   # define input and output nodes
   l_input  = tf.get_default_graph().get_tensor_by_name("input:0")
@@ -99,7 +99,7 @@ with tf.compat.v1.Session() as sess:
   # Run
   for i in tqdm(range(math.ceil(50000/BATCH_SIZE))):
     # Get image batch & true label
-    image, label = sess.run([features, labels])
+    image, label, image_filename = sess.run([features, labels, filenames])
     assert image.shape == (BATCH_SIZE,224,224,3), "Image wrong shape"
     assert label.shape == (BATCH_SIZE,), "Label wrong shape"
     # get output probabilities
@@ -111,7 +111,7 @@ with tf.compat.v1.Session() as sess:
     with open(filename,'w') as f:
       writer = csv.writer(f,delimiter=',')
       for i in range(len(label)):
-        tmp = [ synset_idx[label[i].decode("utf-8")] ]
+        tmp = [ image_filename[i].decode("utf-8"), synset_idx[label[i].decode("utf-8")] ]
         tmp.extend(output_dict[i].tolist())
         writer.writerow( tmp )
 

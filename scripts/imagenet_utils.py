@@ -610,13 +610,16 @@ def dataset_input_fn(filenames, model_dir, image_size, batch_size, num_threads, 
     features, labels = iterator.get_next()
   return features, labels, iterator
 
-def dataset_input_image_fn(dataset_path, model_dir, image_size, batch_size, num_threads, shuffle=False, num_epochs=None, initializable=False, is_training=False):
+def dataset_input_image_fn(dataset_path, model_dir, image_size, batch_size, num_threads, shuffle=False, num_epochs=None, initializable=False, is_training=False,filenames=False):
   # Use `tf.parse_single_example()` to extract data from a `tf.Example`
   # protocol buffer, and perform any additional per-record preprocessing.
   def _parse_function(image):
 
     # get label
     label = tf.strings.split(image,'/',result_type="RaggedTensor")[-2]
+
+    # get filename
+    filename = image    
 
     # load image
     image = tf.io.read_file(image)
@@ -655,7 +658,10 @@ def dataset_input_image_fn(dataset_path, model_dir, image_size, batch_size, num_
     else:
       raise ValueError("Data pre-processing unknown!")
 
-    return image, label
+    if filenames:
+      return image, label, filename
+    else:
+      return image, label
 
   with tf.device('/cpu:0'):
     #dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=8)
@@ -680,8 +686,14 @@ def dataset_input_image_fn(dataset_path, model_dir, image_size, batch_size, num_
       iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
     else:
       iterator = tf.compat.v1.data.make_one_shot_iterator(dataset)
-    features, labels = iterator.get_next()
-  return features, labels, iterator
+    if filenames:
+      features, labels, filename = iterator.get_next()
+    else:
+      features, labels = iterator.get_next()
+  if filenames:
+    return features, labels, filename, iterator
+  else:
+    return features, labels, iterator
 
 
 def images_input_fn(filenames, model_dir, image_size, batch_size, num_threads, shuffle=False, num_epochs=None, initializable=False, is_training=False):

@@ -11,12 +11,14 @@ infquant_graph=$mdir/mobilenet_v1_slim_pretrained_infquant.pb
 input_node=input
 output_node=MobilenetV1/Predictions/Softmax
 input_shape=224,224,3
-[ "$INT4_MODE" = 1 ] && wb=-4 || wb=-8; ab=-8; lb=-16; rb=8; pb=8; prb=8;
+#[ "$INT4_MODE" = 1 ] && wb=-4 || wb=-8; ab=-8; lb=-16; rb=8; pb=8; prb=8;
+#wb=-4; ab=-8; lb=-16; rb=8; pb=8; prb=8;
+wb=-8; ab=-8; lb=-16; rb=8; pb=8; prb=8;
 first_layer=MobilenetV1/MobilenetV1/Conv2d_0/Conv2D
 last_layer=MobilenetV1/Logits/Conv2d_1c_1x1/Conv2D
 
 # Limit GPUs Used
-export CUDA_VISIBLE_DEVICES="3"
+export CUDA_VISIBLE_DEVICES="0,1"
 
 # Generate quantised training graph
 python graffitist/graffitize.pyc \
