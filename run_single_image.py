@@ -13,7 +13,7 @@ import argparse
 import math
 
 # LIMIT GPUs
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1" # e.g. GPUs 0 and 1
 # LOAD GRAFFITIST KERNELS
 kernel_root = os.path.join(os.path.dirname(graffitist.__file__), 'kernels')
 if tf.test.is_built_with_cuda() and tf.test.is_gpu_available(cuda_only=True):
@@ -21,10 +21,10 @@ if tf.test.is_built_with_cuda() and tf.test.is_gpu_available(cuda_only=True):
 else:
   tf.load_op_library(os.path.join(kernel_root, 'quantize_ops.so'))
 
-parser = argparse.ArgumentParser(description='Validation Script')
+parser = argparse.ArgumentParser(description='Single Image Script')
 # DATASET PATH
-parser.add_argument('--data_dir', metavar='PATH', required=True,
-          help='path to imagenet validation dataset dir')
+parser.add_argument('--image_path', metavar='PATH', required=True,
+          help='path to image')
 # MODEL NAME
 parser.add_argument('--model_name', required=True,
           help='model name, to be used for outputs')
@@ -34,17 +34,12 @@ parser.add_argument('--graph_path', metavar='PATH', required=True,
 # CKPT PATH
 parser.add_argument('--ckpt_path', metavar='PATH', required=True,
           help='path to the .ckpt files')
-# BATCH SIZE
-parser.add_argument('-b', '--batch_size', type=int, default=100, metavar='N',
-          help='mini-batch size (default: 100)')
 # INPUT NODE
 parser.add_argument('-i', '--input_node', metavar='STRING', type=str, required=True,
           help='input node')
 # OUTPUT NODE
 parser.add_argument('-o', '--output_node', metavar='STRING', type=str, required=True,
           help='output node')
-
-
 args = parser.parse_args()
 
 # DEFINE MODEL VARIABLES
@@ -53,9 +48,8 @@ GRAPH_PB_PATH = args.graph_path
 CKPT_PATH     = args.ckpt_path
 
 #  DEFINE DATASET VARIABLES
-DATASET_PATH = args.data_dir 
-BATCH_SIZE   = args.batch_size
- 
+IMAGE_PATH = args.image_path
+
 # NODES IN AND OUT
 INPUT_NODE  = args.input_node
 OUTPUT_NODE = args.output_node
@@ -93,36 +87,13 @@ with tf.compat.v1.Session() as sess:
   saver = tf.compat.v1.train.Saver(var_list=var_list)
   saver.restore(sess, CKPT_PATH)
 
-  # Get the dataset
-  features, labels, filenames, _ = imagenet_utils.dataset_input_image_fn(DATASET_PATH, GRAPH_PB_PATH, 224, BATCH_SIZE, 8,filenames=True)
-
   # define input and output nodes
-  l_input  = tf.get_default_graph().get_tensor_by_name("input:0")
-  l_output = tf.get_default_graph().get_tensor_by_name("MobilenetV1/Predictions/Softmax:0")
+  l_input  = tf.get_default_graph().get_tensor_by_name(INPUT_NODE+":0")
+  l_output = tf.get_default_graph().get_tensor_by_name(OUTPUT_NODE+":0")
 
-  # Reset output directory
-  if os.path.isdir('outputs/'+MODEL_NAME):
-    for filename in os.listdir('outputs/'+MODEL_NAME):
-      os.remove('outputs/'+MODEL_NAME+'/'+filename)
-  else:
-    os.mkdir('outputs/'+MODEL_NAME)
-
-  # Run
-  for i in tqdm(range(math.ceil(50000/BATCH_SIZE))):
-    # Get image batch & true label
-    image, label, image_filename = sess.run([features, labels, filenames])
-    assert image.shape == (BATCH_SIZE,224,224,3), "Image wrong shape"
-    assert label.shape == (BATCH_SIZE,), "Label wrong shape"
-    # get output probabilities
-    output_dict = sess.run(l_output,feed_dict = {l_input : image})
-    # create filename
-    filename = 'outputs/'+MODEL_NAME+'/'+uuid.uuid4().hex+'.csv'
-    # Write to output csv
-    #   [ true_label, prob[0], prob[1], ... ]
-    with open(filename,'w') as f:
-      writer = csv.writer(f,delimiter=',')
-      for i in range(len(label)):
-        tmp = [ image_filename[i].decode("utf-8"), synset_idx[label[i].decode("utf-8")] ]
-        tmp.extend(output_dict[i].tolist())
-        writer.writerow( tmp )
-
+  # load input image
+  image, label = imagenet_utils.get_image(IMAGE_PATH, CKPT_PATH, 224) # NOTE: might need to change image size
+  image = tf.expand_dims(image,0).eval()
+  # run net and get output probabilities
+  output_dict = sess.run(l_output,feed_dict = {l_input : image})
+ 

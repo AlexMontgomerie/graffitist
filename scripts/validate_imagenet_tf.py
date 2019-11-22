@@ -19,6 +19,7 @@ import os
 import re
 import time
 import numpy as np
+import json
 
 import tensorflow as tf
 
@@ -45,6 +46,12 @@ parser.add_argument('--deterministic', dest='deterministic', action='store_true'
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"]="2" # This is to filter out TensorFlow INFO and WARNING logs
 os.environ["CUDA_VISIBLE_DEVICES"]="1" # GPU visible for validation
+
+
+# open synset-class look up table
+with open('synset_idx.json','r') as f:
+  synset_idx = json.load(f)
+
 
 # Load python libraries for custom C++/CUDA quantize kernels.
 kernel_root = os.path.join(os.path.dirname(graffitist.__file__), 'kernels')
@@ -192,13 +199,14 @@ def validate(val_filenames):
       top5 = im_utils.AverageMeter()
 
       _, preds_top_5 = tf.nn.top_k(output, k=5, sorted=True)
-      features, labels, _ = im_utils.dataset_input_fn(val_filenames, args.model_dir, args.image_size, args.batch_size, num_threads, shuffle=False, num_epochs=1, is_training=False)
+      features, labels, _ = im_utils.dataset_input_image_fn(val_filenames, args.model_dir, args.image_size, args.batch_size, num_threads, shuffle=False, num_epochs=1, is_training=False)
 
       i = 0
       end = time.time()
       while True:
         try:
           input_features, input_labels = sess.run([features, labels])
+          input_labels = np.array([ synset_idx[input_labels[i].decode("utf-8")] for i in range(input_labels.shape[0]) ])
         except tf.errors.OutOfRangeError:
           break
 

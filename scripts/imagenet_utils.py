@@ -610,6 +610,51 @@ def dataset_input_fn(filenames, model_dir, image_size, batch_size, num_threads, 
     features, labels = iterator.get_next()
   return features, labels, iterator
 
+def get_image(filename, model_dir, image_size):
+
+  # get label
+  label = tf.strings.split(filename,'/',result_type="RaggedTensor")[-2]
+
+  # load image
+  image = tf.io.read_file(filename)
+  image = tf.image.decode_jpeg(image, channels=3)
+
+  if re.match('.*inception.*slim.*', model_dir):
+    # Center crop, resize, scale and shift [0, 255] -> [0, 1] -> [-1, 1]
+    image = inception_preprocess_input_fn(image, image_size, image_size, False)
+  elif re.match('.*mobilenet.*slim.*', model_dir):
+    # Center crop, resize, scale and shift [0, 255] -> [0, 1] -> [-1, 1]
+    image = inception_preprocess_input_fn(image, image_size, image_size, False)
+  elif re.match('.*vgg.*slim.*', model_dir):
+    # Center crop, aspect preserving resize, mean subtraction
+    image = vgg_preprocess_input_fn(image, image_size, image_size, False)
+  elif re.match('.*resnet_v1.*slim.*', model_dir):
+    # Center crop, aspect preserving resize, mean subtraction
+    image = vgg_preprocess_input_fn(image, image_size, image_size, False)
+  elif re.match('.*resnet_v1p5.*keras.*', model_dir):
+    # Center crop, aspect preserving resize, mean subtraction
+    image = vgg_preprocess_input_fn(image, image_size, image_size, False)
+  elif re.match('.*darknet19.*', model_dir):
+    # Center crop, resize, normalize [0, 255] -> [0, 1]
+    image = darknet_preprocess_input_fn(image, image_size, image_size, False)
+  elif re.match('.*inception.*keras.*', model_dir):
+    # Center crop, resize, scale and shift [0, 255] -> [0, 1] -> [-1, 1]
+    image = inception_preprocess_input_fn(image, image_size, image_size, False)
+  elif re.match('.*inception.*caffe2tf.*', model_dir):
+    # Center crop, resize, RGB->BGR, mean subtraction
+    image = inception_caffe2tf_preprocess_input_fn(image, image_size, image_size, False)
+  elif re.match('.*mobilenet.*caffe2tf.*', model_dir):
+    # Center crop, resize, RGB->BGR, mean subtraction, scale by norm_const=0.017
+    image = mobilenet_caffe2tf_preprocess_input_fn(image, image_size, image_size, False)
+  elif re.match('.*caffe2tf.*', model_dir):
+    # Center crop, aspect preserving resize, RGB->BGR, mean subtraction
+    image = caffe2tf_preprocess_input_fn(image, image_size, image_size, False)
+  else:
+    raise ValueError("Data pre-processing unknown!")
+
+  return image, label
+
+
 def dataset_input_image_fn(dataset_path, model_dir, image_size, batch_size, num_threads, shuffle=False, num_epochs=None, initializable=False, is_training=False,filenames=False):
   # Use `tf.parse_single_example()` to extract data from a `tf.Example`
   # protocol buffer, and perform any additional per-record preprocessing.
